@@ -1,8 +1,9 @@
 'use strict';
 
 const mongoose = require('mongoose');
+const bcrypt = require('bcryptjs');
 
-const userSchema = mongoose.Schema({
+const UserSchema = new mongoose.Schema({
   username: {
     type: String,
     required: true,
@@ -15,6 +16,14 @@ const userSchema = mongoose.Schema({
     required: true
   }
 });
+
+UserSchema.methods.validatePassword = function (password) {
+  return bcrypt.compare(password, this.password);
+};
+
+UserSchema.statics.hashPassword = function (password) {
+  return bcrypt.hash(password, 10);
+};
 
 const blogPostSchema = mongoose.Schema({
   author: {
@@ -39,7 +48,7 @@ blogPostSchema.methods.apiRepr = function() {
     title: this.title,
     created: this.created
   };
-}
+};
 
 const BlogPost = mongoose.model('BlogPost', blogPostSchema);
 
