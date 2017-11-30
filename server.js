@@ -183,6 +183,35 @@ app.post('/users', (req, res) => {
     });
   }
 
+  let {username, password, firstName = '', lastName = ''} = req.body;
+
+  firstName = firstName.trim();
+  lastName = lastName.trim();
+
+  return User.find({username})
+    .count()
+    .then(count => {
+      if (count > 0) {
+        return Promise.reject({
+          code: 422,
+          reason: 'ValidationError',
+          message: 'Username already exists',
+          location: 'username'
+        });
+      }
+      return User.hashPassword(password);
+    })
+    .then(digest => {
+      return User.create({
+        username,
+        password: digest,
+        firstName,
+        lastName
+      });
+    })
+    .then(user => {
+      return res.status(201).json(user.apiRepr());
+    });
 });
 
 
