@@ -84,7 +84,7 @@ app.get('/posts/:id', (req, res) => {
 });
 
 app.post('/posts', localAuth, (req, res) => {
-  const requiredFields = ['title', 'content', 'author', 'username', 'password'];
+  const requiredFields = ['title', 'content', 'username', 'password'];
   for (let i=0; i<requiredFields.length; i++) {
     const field = requiredFields[i];
     if (!(field in req.body)) {
@@ -94,19 +94,40 @@ app.post('/posts', localAuth, (req, res) => {
     }
   }
 
-  BlogPost
-    .create({
-      title: req.body.title,
-      content: req.body.content,
-      author: req.body.author
-    })
-    .then(blogPost => res.status(201).json(blogPost.apiRepr()))
-    .catch(err => {
-      if (err.reason === 'LoginError') {
-        return res.status(err.code).json(err);
-      }
-      res.status(500).json({error: 'Something went wrong'});
+  User.find( { username: `${req.body.username}`} )
+    .then(user => {
+      console.log(user);
+      BlogPost
+        .create({
+          title: req.body.title,
+          content: req.body.content,
+          author: {
+            firstName: user[0].firstName,
+            lastName: user[0].lastName
+          }
+        })
+        .then(blogPost => res.status(201).json(blogPost.apiRepr()))
+        .catch(err => {
+          if (err.reason === 'LoginError') {
+            return res.status(err.code).json(err);
+          }
+          res.status(500).json({error: 'Something went wrong'});
+        });
     });
+
+  // BlogPost
+  //   .create({
+  //     title: req.body.title,
+  //     content: req.body.content,
+  //     author: req.body.author
+  //   })
+  //   .then(blogPost => res.status(201).json(blogPost.apiRepr()))
+  //   .catch(err => {
+  //     if (err.reason === 'LoginError') {
+  //       return res.status(err.code).json(err);
+  //     }
+  //     res.status(500).json({error: 'Something went wrong'});
+  //   });
 
 });
 
@@ -124,7 +145,7 @@ app.delete('/posts/:id', localAuth, (req, res) => {
 });
 
 
-app.put('/posts/:id', (req, res) => {
+app.put('/posts/:id', localAuth, (req, res) => {
   if (!(req.params.id && req.body.id && req.params.id === req.body.id)) {
     res.status(400).json({
       error: 'Request path id and request body id values must match'
@@ -146,7 +167,7 @@ app.put('/posts/:id', (req, res) => {
 });
 
 
-app.delete('/:id', (req, res) => {
+app.delete('/:id', localAuth, (req, res) => {
   BlogPost
     .findByIdAndRemove(req.params.id)
     .then(() => {
