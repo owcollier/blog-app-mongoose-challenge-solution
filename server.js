@@ -59,6 +59,8 @@ const localStrategy = new LocalStrategy((username, password, done) => {
 
 passport.use(localStrategy);
 
+const localAuth = passport.authenticate('local', { session: false });
+
 app.get('/posts', (req, res) => {
   BlogPost
     .find()
@@ -81,8 +83,8 @@ app.get('/posts/:id', (req, res) => {
     });
 });
 
-app.post('/posts', (req, res) => {
-  const requiredFields = ['title', 'content', 'author'];
+app.post('/posts', localAuth, (req, res) => {
+  const requiredFields = ['title', 'content', 'author', 'username', 'password'];
   for (let i=0; i<requiredFields.length; i++) {
     const field = requiredFields[i];
     if (!(field in req.body)) {
@@ -100,14 +102,16 @@ app.post('/posts', (req, res) => {
     })
     .then(blogPost => res.status(201).json(blogPost.apiRepr()))
     .catch(err => {
-      console.error(err);
+      if (err.reason === 'LoginError') {
+        return res.status(err.code).json(err);
+      }
       res.status(500).json({error: 'Something went wrong'});
     });
 
 });
 
 
-app.delete('/posts/:id', (req, res) => {
+app.delete('/posts/:id', localAuth, (req, res) => {
   BlogPost
     .findByIdAndRemove(req.params.id)
     .then(() => {
