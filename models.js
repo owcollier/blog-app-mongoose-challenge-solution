@@ -25,6 +25,17 @@ UserSchema.statics.hashPassword = function (password) {
   return bcrypt.hash(password, 10);
 };
 
+UserSchema.virtual('fullName').get(function() {
+  return `${this.firstName} ${this.lastName}`.trim();
+});
+
+UserSchema.methods.apiRepr = function() {
+  return {
+    username: this.username,
+    name: this.fullName
+  };
+};
+
 const blogPostSchema = mongoose.Schema({
   author: {
     firstName: String,
