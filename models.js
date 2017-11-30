@@ -1,4 +1,20 @@
+'use strict';
+
 const mongoose = require('mongoose');
+
+const userSchema = mongoose.Schema({
+  username: {
+    type: String,
+    required: true,
+    unique: true
+  },
+  firstName: { type: String, default: '' },
+  lastName: { type: String, default: '' },
+  password: {
+    type: String,
+    required: true
+  }
+});
 
 const blogPostSchema = mongoose.Schema({
   author: {
