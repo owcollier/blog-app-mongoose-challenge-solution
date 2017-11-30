@@ -211,6 +211,12 @@ app.post('/users', (req, res) => {
     })
     .then(user => {
       return res.status(201).json(user.apiRepr());
+    })
+    .catch(err => {
+      if (err.reason === 'ValidationError') {
+        return res.status(err.code).json(err);
+      }
+      res.status(500).json({code: 500, message: 'Internal server error'});
     });
 });
 
