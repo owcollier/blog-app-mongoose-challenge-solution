@@ -6,7 +6,7 @@ const mongoose = require('mongoose');
 const morgan = require('morgan');
 
 const {DATABASE_URL, PORT} = require('./config');
-const {BlogPost} = require('./models');
+const {BlogPost, User } = require('./models');
 
 const app = express();
 
@@ -43,7 +43,7 @@ app.post('/posts', (req, res) => {
   for (let i=0; i<requiredFields.length; i++) {
     const field = requiredFields[i];
     if (!(field in req.body)) {
-      const message = `Missing \`${field}\` in request body`
+      const message = `Missing \`${field}\` in request body`;
       console.error(message);
       return res.status(400).send(message);
     }
@@ -57,8 +57,8 @@ app.post('/posts', (req, res) => {
     })
     .then(blogPost => res.status(201).json(blogPost.apiRepr()))
     .catch(err => {
-        console.error(err);
-        res.status(500).json({error: 'Something went wrong'});
+      console.error(err);
+      res.status(500).json({error: 'Something went wrong'});
     });
 
 });
@@ -108,6 +108,83 @@ app.delete('/:id', (req, res) => {
     });
 });
 
+// Post for Users
+
+app.post('/users', (req, res) => {
+  const requiredFields = ['username', 'password'];
+  const missingField = requiredFields.find(field => !(field in req.body));
+
+  if (missingField) {
+    return res.status(422).json({
+      code: 422,
+      reason: 'ValidationError',
+      message: 'Missing field',
+      location: missingField
+    });
+  }
+
+  const stringFields = ['username', 'password', 'firstName', 'lastName'];
+  const nonStringField = stringFields.find(
+    field => field in req.body && typeof req.body[field] !== 'string'  
+  );
+
+  if (nonStringField) {
+    return res.status(422).json({
+      code: 422,
+      reason: 'ValidationError',
+      message: 'Incorrect field type: expected string',
+      location: nonStringField
+    });
+  }
+
+  const explicitlyTrimmedFields = ['username', 'password'];
+  const nonTrimmedField = explicitlyTrimmedFields.find(
+    field => req.body[field].trim() !== req.body[field]
+  );
+
+  if (nonTrimmedField) {
+    return res.status(422).json({
+      code: 422,
+      reason: 'ValidationError',
+      message: 'Cannot start or end with whitespace',
+      location: nonTrimmedField
+    });
+  }
+
+  const sizedFields = {
+    username: {
+      min: 1
+    },
+    password: {
+      min: 8,
+      max: 72
+    }
+  };
+
+  const tooSmallField = Object.keys(sizedFields).find(
+    field =>
+      'min' in sizedFields[field] && req.body[field].trim().length < sizedFields[field].min
+  );
+  const tooLargeField = Object.keys(sizedFields).find(
+    field =>
+      'max' in sizedFields[field] && req.body[field].trim().length > sizedFields[field].max
+  );
+
+  if (tooSmallField || tooLargeField) {
+    return res.status(422).json({
+      code: 422,
+      reason: 'ValidationError',
+      message: tooSmallField
+        ? `Must be at least ${sizedFields[tooSmallField]
+          .min} characters long`
+        : `Must be at most ${sizedFields[tooLargeField]
+          .max} characters long`,
+      location: tooSmallField || tooLargeField
+    });
+  }
+
+});
+
 
 app.use('*', function(req, res) {
   res.status(404).json({message: 'Not Found'});
@@ -129,10 +206,10 @@ function runServer(databaseUrl=DATABASE_URL, port=PORT) {
         console.log(`Your app is listening on port ${port}`);
         resolve();
       })
-      .on('error', err => {
-        mongoose.disconnect();
-        reject(err);
-      });
+        .on('error', err => {
+          mongoose.disconnect();
+          reject(err);
+        });
     });
   });
 }
@@ -141,15 +218,15 @@ function runServer(databaseUrl=DATABASE_URL, port=PORT) {
 // use it in our integration tests later.
 function closeServer() {
   return mongoose.disconnect().then(() => {
-     return new Promise((resolve, reject) => {
-       console.log('Closing server');
-       server.close(err => {
-           if (err) {
-               return reject(err);
-           }
-           resolve();
-       });
-     });
+    return new Promise((resolve, reject) => {
+      console.log('Closing server');
+      server.close(err => {
+        if (err) {
+          return reject(err);
+        }
+        resolve();
+      });
+    });
   });
 }
 
@@ -157,6 +234,6 @@ function closeServer() {
 // runs. but we also export the runServer command so other code (for instance, test code) can start the server as needed.
 if (require.main === module) {
   runServer().catch(err => console.error(err));
-};
+}
 
 module.exports = {runServer, app, closeServer};
