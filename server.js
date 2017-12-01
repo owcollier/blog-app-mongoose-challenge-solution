@@ -130,8 +130,8 @@ app.get('/posts/:id', (req, res) => {
     });
 });
 
-app.post('/posts', localAuth, (req, res) => {
-  const requiredFields = ['title', 'content', 'username', 'password'];
+app.post('/posts', jwtAuth, (req, res) => {
+  const requiredFields = ['title', 'content'];
   for (let i=0; i<requiredFields.length; i++) {
     const field = requiredFields[i];
     if (!(field in req.body)) {
@@ -141,7 +141,7 @@ app.post('/posts', localAuth, (req, res) => {
     }
   }
 
-  User.find( { username: `${req.body.username}`} )
+  User.find( { username: `${req.user.username}`} )
     .then(user => {
       console.log(user);
       BlogPost
@@ -181,7 +181,7 @@ app.post('/posts', localAuth, (req, res) => {
 });
 
 
-app.delete('/posts/:id', localAuth, (req, res) => {
+app.delete('/posts/:id', jwtAuth, (req, res) => {
   BlogPost
     .findByIdAndRemove(req.params.id)
     .then(() => {
@@ -194,7 +194,7 @@ app.delete('/posts/:id', localAuth, (req, res) => {
 });
 
 
-app.put('/posts/:id', localAuth, (req, res) => {
+app.put('/posts/:id', jwtAuth, (req, res) => {
   if (!(req.params.id && req.body.id && req.params.id === req.body.id)) {
     res.status(400).json({
       error: 'Request path id and request body id values must match'
@@ -216,7 +216,7 @@ app.put('/posts/:id', localAuth, (req, res) => {
 });
 
 
-app.delete('/:id', localAuth, (req, res) => {
+app.delete('/:id', jwtAuth, (req, res) => {
   BlogPost
     .findByIdAndRemove(req.params.id)
     .then(() => {
