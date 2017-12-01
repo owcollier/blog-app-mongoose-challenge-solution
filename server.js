@@ -1,5 +1,6 @@
 'use strict';
 
+require('dotenv').config();
 const bodyParser = require('body-parser');
 const express = require('express');
 const mongoose = require('mongoose');
@@ -22,6 +23,8 @@ app.use(bodyParser.json());
 mongoose.Promise = global.Promise;
 
 // Local strategy for auth
+
+console.log('secret:', JWT_SECRET);
 
 const localStrategy = new LocalStrategy((username, password, done) => {
   let user;
@@ -79,7 +82,7 @@ const createAuthToken = function(user) {
 const jwtStrategy = new JwtStrategy(
   {
     secretOrKey: JWT_SECRET,
-    jwtFromRequest: ExtractJwt.fromAauthHeaderWithScheme('Bearer'),
+    jwtFromRequest: ExtractJwt.fromAuthHeaderWithScheme('Bearer'),
     algorithms: ['HS256']
   },
   (payload, done) => {
@@ -87,10 +90,19 @@ const jwtStrategy = new JwtStrategy(
   }
 );
 
+passport.use(jwtStrategy);
+
+const jwtAuth = passport.authenticate('jwt', {session: false});
+
 // Endpoints login and refresh for JWT token
 
 app.post('/login', localAuth, (req, res) => {
   const authToken = createAuthToken(req.user.apiRepr());
+  res.json({authToken});
+});
+
+app.post('/refresh', jwtAuth, (req, res) => {
+  const authToken = createAuthToken(req.user);
   res.json({authToken});
 });
 
