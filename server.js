@@ -64,7 +64,7 @@ passport.use(localStrategy);
 
 const localAuth = passport.authenticate('local', { session: false });
 
-// 
+// create token function for jwt
 
 const createAuthToken = function(user) {
   return jwt.sign({user}, JWT_SECRET, {
@@ -75,6 +75,26 @@ const createAuthToken = function(user) {
 };
 
 // JWT strategy for auth
+
+const jwtStrategy = new JwtStrategy(
+  {
+    secretOrKey: JWT_SECRET,
+    jwtFromRequest: ExtractJwt.fromAauthHeaderWithScheme('Bearer'),
+    algorithms: ['HS256']
+  },
+  (payload, done) => {
+    done(null, payload.user);
+  }
+);
+
+// Endpoints login and refresh for JWT token
+
+app.post('/login', localAuth, (req, res) => {
+  const authToken = createAuthToken(req.user.apiRepr());
+  res.json({authToken});
+});
+
+// Endpoints for posts
 
 app.get('/posts', (req, res) => {
   BlogPost
@@ -129,6 +149,8 @@ app.post('/posts', localAuth, (req, res) => {
           res.status(500).json({error: 'Something went wrong'});
         });
     });
+
+
 
   // BlogPost
   //   .create({
